@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EntityDescriptor
+    xmlns="urn:oasis:names:tc:SAML:2.0:metadata"
+    entityID="http://example-idp.local/metadata">
+  <IDPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+    <KeyDescriptor use="signing">
+      <KeyInfo xmlns="http://www.w3.org/2000/09/xmldsig#">
+        <X509Data>
+          <X509Certificate>MIIDCTCCAfGgAwIBAgIUHQ6s+lRzEgKTLOI2ghtrw0efvLkwDQYJKoZIhvcNAQELBQAwFDESMBAGA1UEAwwJc2FtbC1kZW1vMB4XDTI1MTEyMTE2MTczOVoXDTM1MTExOTE2MTczOVowFDESMBAGA1UEAwwJc2FtbC1kZW1vMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtDW2Ol0UOdhHPZKLuXF4mQFfYfPfdoV3e1nBN6vt+YOc+rTbCI2rbUdXBJfqZP5t+1DKDfFVgJjeNCNLVjvHp00WF3U1DWvzvc1bIBl/rCDRL6txtFX3H48cyoW9jiuivW9bP8I54zfR1731ZHK4ylVdo4SjIK3ppKdVBedWHsEPdY7Bkn1NPHkvOiUj7SdmZ3SVCH8Mnjhjww3Pbt5tu7ygHLBVCScGe4xZJvVsoeLFCzdtwVn2Iumzlag18qzYozixN7xJDQPM4Vv7+vayNwD7zHQF8oWqCgkDa6rhvmQH5Mbjppd8TlwH8e4YSRx2h/+85nRbib8JxcwdMihV5wIDAQABo1MwUTAdBgNVHQ4EFgQUEOkeHNXuoIqqpBXs3F8U47UzGhMwHwYDVR0jBBgwFoAUEOkeHNXuoIqqpBXs3F8U47UzGhMwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAHK0fWui7JNo7j/IYgm2kbXxaWYDwiyesWx4nleYFmBdT874TTPRWpfdeQujniuuv2sw4kr3HXAOblFFsbpamzvTX29IrK4V9m+602kXSqFb4XmRcZAB2IMGzI6IFf1dVvjfOvm5/87J6HbarJM7A5+zRItBhH3M6RpcC435wtuUVaPH311gDHO3BTqzhumBS+jDi9BUp4sJGcmormJxKDBqnyKewYwSYlGVFfQcOBDja/kDLMpJGLHhxUaOcMSMDYpj3fePK/GgvFRxZqbu9Z1IGTclg2/OB2LUTHmlKrQNuRaj1t1S5WBNqGPSqqPT0GBXg64oOJJNiyu1R9sqYHw==</X509Certificate>
+        </X509Data>
+      </KeyInfo>
+    </KeyDescriptor>
+    <SingleSignOnService
+        Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+        Location="http://example-idp.local/sso" />
+    <NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</NameIDFormat>
+  </IDPSSODescriptor>
+</EntityDescriptor>

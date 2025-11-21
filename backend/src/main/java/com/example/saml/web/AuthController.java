@@ -12,6 +12,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.validation.annotation.Validated;
@@ -28,18 +29,25 @@ public class AuthController implements AuthenticationEntryPoint {
 
   private final AuthenticationManager authenticationManager;
   private final SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
+  private final SecurityContextRepository securityContextRepository;
 
-  public AuthController(AuthenticationManager authenticationManager) {
+  public AuthController(AuthenticationManager authenticationManager,
+      SecurityContextRepository securityContextRepository) {
     this.authenticationManager = authenticationManager;
+    this.securityContextRepository = securityContextRepository;
   }
 
   @PostMapping("/auth/login")
-  public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletRequest servletRequest) {
+  public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletRequest servletRequest,
+      HttpServletResponse servletResponse) {
     try {
       Authentication authentication = authenticationManager.authenticate(
           new UsernamePasswordAuthenticationToken(request.username(), request.password()));
-      SecurityContextHolder.getContext().setAuthentication(authentication);
+      var context = SecurityContextHolder.createEmptyContext();
+      context.setAuthentication(authentication);
+      SecurityContextHolder.setContext(context);
       servletRequest.getSession(true);
+      securityContextRepository.saveContext(context, servletRequest, servletResponse);
       return ResponseEntity.ok(Map.of("status", "ok"));
     } catch (AuthenticationException ex) {
       return ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).body("Bad credentials");
@@ -68,10 +76,13 @@ public class AuthController implements AuthenticationEntryPoint {
     } else if (authentication.getDetails() instanceof Map<?, ?> details) {
       attributes = (Map<String, ?>) details;
     }
-    return ResponseEntity.ok(Map.of(
-        "name", name,
-        "authorities", authentication.getAuthorities().stream().map(Object::toString).toList(),
-        "attributes", attributes));
+    Map<String, Object> body = new java.util.LinkedHashMap<>();
+    body.put("name", name);
+    body.put("authorities", authentication.getAuthorities().stream().map(Object::toString).toList());
+    if (attributes != null) {
+      body.put("attributes", attributes);
+    }
+    return ResponseEntity.ok(body);
   }
 
   @Override

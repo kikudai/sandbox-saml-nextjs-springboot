@@ -4,7 +4,9 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     environment:
-      - SAML_IDP_METADATA_URI=${SAML_IDP_METADATA_URI:-https://login.microsoftonline.com/{tenant-id}/federationmetadata/2007-06/federationmetadata.xml?appid={app-id}}
+      - SPRING_AUTO_CONFIGURE_EXCLUDE=org.springframework.boot.autoconfigure.security.saml2.Saml2RelyingPartyAutoConfiguration
+      - SAML_ENABLED=${SAML_ENABLED:-false}
+      - SAML_IDP_METADATA_URI=${SAML_IDP_METADATA_URI:-classpath:saml/idp-placeholder.xml}
       - SAML_ENTITY_ID=${SAML_ENTITY_ID:-http://localhost:8080/saml2/service-provider-metadata/entra}
       - APP_FRONTEND_BASE_URL=${APP_FRONTEND_BASE_URL:-http://localhost:3000}
     ports:

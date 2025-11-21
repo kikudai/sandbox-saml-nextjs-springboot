@@ -4,22 +4,18 @@ server:
 spring:
   application:
     name: saml-backend
-  security:
-    saml2:
-      relyingparty:
-        registration:
-          entra:
-            signing:
-              credentials:
-                - private-key-location: classpath:saml/sp-signing.key
-                  certificate-location: classpath:saml/sp-signing.crt
-            assertingparty:
-              metadata-uri: ${SAML_IDP_METADATA_URI:https://login.microsoftonline.com/{tenant-id}/federationmetadata/2007-06/federationmetadata.xml?appid={app-id}}
-            acs:
-              location: "{baseUrl}/login/saml2/sso/{registrationId}"
-            entity-id: ${SAML_ENTITY_ID:http://localhost:8080/saml2/service-provider-metadata/entra}
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.saml2.Saml2RelyingPartyAutoConfiguration
   jackson:
     default-property-inclusion: non_null
+
+app:
+  frontend-base-url: ${APP_FRONTEND_BASE_URL:http://localhost:3000}
+  saml:
+    enabled: ${SAML_ENABLED:false}
+    metadata-uri: ${SAML_IDP_METADATA_URI:}
+    entity-id: ${SAML_ENTITY_ID:http://localhost:8080/saml2/service-provider-metadata/entra}
 
 logging:
   level:
