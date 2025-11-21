@@ -1,0 +1,29 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - SAML_IDP_METADATA_URI=${SAML_IDP_METADATA_URI:-https://login.microsoftonline.com/{tenant-id}/federationmetadata/2007-06/federationmetadata.xml?appid={app-id}}
+      - SAML_ENTITY_ID=${SAML_ENTITY_ID:-http://localhost:8080/saml2/service-provider-metadata/entra}
+      - APP_FRONTEND_BASE_URL=${APP_FRONTEND_BASE_URL:-http://localhost:3000}
+    ports:
+      - "8080:8080"
+    networks:
+      - saml-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - saml-net
+
+networks:
+  saml-net: {}

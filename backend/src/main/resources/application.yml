@@ -1,0 +1,27 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: saml-backend
+  security:
+    saml2:
+      relyingparty:
+        registration:
+          entra:
+            signing:
+              credentials:
+                - private-key-location: classpath:saml/sp-signing.key
+                  certificate-location: classpath:saml/sp-signing.crt
+            assertingparty:
+              metadata-uri: ${SAML_IDP_METADATA_URI:https://login.microsoftonline.com/{tenant-id}/federationmetadata/2007-06/federationmetadata.xml?appid={app-id}}
+            acs:
+              location: "{baseUrl}/login/saml2/sso/{registrationId}"
+            entity-id: ${SAML_ENTITY_ID:http://localhost:8080/saml2/service-provider-metadata/entra}
+  jackson:
+    default-property-inclusion: non_null
+
+logging:
+  level:
+    org.springframework.security.saml2: INFO
+    org.springframework.security: INFO
