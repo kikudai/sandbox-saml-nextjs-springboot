@@ -19,5 +19,6 @@ app:
 
 logging:
   level:
-    org.springframework.security.saml2: INFO
+    org.springframework.security.saml2: DEBUG
     org.springframework.security: INFO
+    com.example.saml: DEBUG

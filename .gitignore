@@ -14,3 +14,5 @@ backend/.mvn
 
 # OS
 .DS_Store
+
+.env

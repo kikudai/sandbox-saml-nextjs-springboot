@@ -26,20 +26,28 @@ import org.springframework.security.saml2.provider.service.registration.RelyingP
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrations;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
 
+  private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
+
   @Value("${app.frontend-base-url:http://localhost:3000}")
   private String frontendBaseUrl;
+
+  @Value("${app.saml.enabled:false}")
+  private boolean samlEnabledProp;
 
   private final ObjectProvider<RelyingPartyRegistrationRepository> relyingPartyRegistrationRepositoryProvider;
 
@@ -51,6 +59,8 @@ public class SecurityConfig {
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     RelyingPartyRegistrationRepository samlRepo = relyingPartyRegistrationRepositoryProvider.getIfAvailable();
     boolean samlEnabled = samlRepo != null;
+    log.info("Security filter chain init: app.saml.enabled={}, RelyingPartyRegistrationRepository present={}",
+        samlEnabledProp, samlEnabled);
 
     http
         .csrf(csrf -> csrf.ignoringRequestMatchers(
@@ -115,15 +125,23 @@ public class SecurityConfig {
   }
 
   @Bean
+  public WebSecurityCustomizer webSecurityCustomizer() {
+    return web -> web.ignoring().requestMatchers("/saml2/service-provider-metadata/**");
+  }
+
+  @Bean
   @ConditionalOnProperty(name = "app.saml.enabled", havingValue = "true")
   public RelyingPartyRegistrationRepository relyingPartyRegistrationRepository(
       @Value("${app.saml.metadata-uri}") String metadataUri,
       @Value("${app.saml.entity-id}") String entityId) {
+    log.info("Creating RelyingPartyRegistrationRepository (app.saml.enabled=true) metadataUri={}, entityId={}",
+        metadataUri, entityId);
     RelyingPartyRegistration registration = RelyingPartyRegistrations
         .fromMetadataLocation(metadataUri)
         .registrationId("entra")
         .entityId(entityId)
         .build();
+    log.info("Created RelyingPartyRegistrationRepository for registrationId=entra, entityId={}", entityId);
     return new InMemoryRelyingPartyRegistrationRepository(registration);
   }
 
