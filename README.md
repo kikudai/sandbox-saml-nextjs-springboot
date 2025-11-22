@@ -8,8 +8,8 @@ Next.js フロントエンドと Spring Boot バックエンドで、Entra ID �
 - docker-compose : フロント `3000`, バックエンド `8080`
 
 ### バージョン情報
-- フロントエンド: Next.js 14.1 / React 18 / TypeScript 5（package.json に準拠）
-- バックエンド: Java 17 / Spring Boot 3.2.5 / Spring Security SAML2 / Maven
+- フロントエンド: Next.js 14.1.0 / React 18.2.0 / TypeScript 5.3.3（`frontend/package.json` に準拠）
+- バックエンド: Java 17 / Spring Boot 3.2.5 / Spring Security 6.2.4 / Spring Security SAML2 / Maven / OpenSAML (Shibboleth repo)
 
 ## 事前準備（Entra ID 側設定）
 1. Entra ID で Enterprise Application を作成し、**SAML** を選択
