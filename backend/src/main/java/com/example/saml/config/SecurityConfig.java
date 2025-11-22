@@ -86,7 +86,11 @@ public class SecurityConfig {
     if (samlEnabled) {
       http.saml2Login(saml2 -> saml2
           .relyingPartyRegistrationRepository(samlRepo)
-          .defaultSuccessUrl(frontendBaseUrl, true));
+          .defaultSuccessUrl(frontendBaseUrl, true)
+          .failureHandler((request, response, exception) -> {
+            log.error("SAML authentication failed", exception);
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+          }));
     } else {
       http.saml2Login(AbstractHttpConfigurer::disable);
     }
@@ -148,7 +152,7 @@ public class SecurityConfig {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
-    configuration.setAllowedOrigins(List.of("http://localhost:3000", "http://127.0.0.1:3000"));
+    configuration.setAllowedOriginPatterns(List.of("*"));
     configuration.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
     configuration.setAllowedHeaders(List.of("*"));
     configuration.setAllowCredentials(true);

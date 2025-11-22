@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<EntityDescriptor ID="_3445dc07-b8a5-4609-bf8a-b0838b0f1d81" entityID="https://sts.windows.net/50656632-0483-4474-9aee-15d54d706297/"
+<EntityDescriptor ID="_422872a7-1b6b-4720-8f0f-e7cf43014873" entityID="https://sts.windows.net/50656632-0483-4474-9aee-15d54d706297/"
   xmlns="urn:oasis:names:tc:SAML:2.0:metadata">
   <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
     <SignedInfo>
       <CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" />
       <SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256" />
-      <Reference URI="#_3445dc07-b8a5-4609-bf8a-b0838b0f1d81">
+      <Reference URI="#_422872a7-1b6b-4720-8f0f-e7cf43014873">
         <Transforms>
           <Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
           <Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" />
         </Transforms>
         <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256" />
-        <DigestValue>wg/bxrn/eIvpP2o2T0uTvrR5g9/3HJAobrNe7fOF/NI=</DigestValue>
+        <DigestValue>4ShDs3NHQkr6k1y9CzGEePLp8gIq92kAgWiRLZRF9Dg=</DigestValue>
       </Reference>
     </SignedInfo>
-    <SignatureValue>BvWRJfJFIr7DMy2N5C0A2G6cfhyEgp4HNnRbCcMJN2+Nge1CSwkXneyKB2KlJ44L2g2ds+jc9amyHsaVo7rBOXx9+YtBin3CdPh+BYEl6/iVad7Bz4lPs7BqhE5o5RnbNX0BAUPy0ll+FfUXMcjzfwC+8xXsDG9zSJIjqXHOh1RsENA+O8GQpN/yadAyGmBGnYi1SWLWCAh/8iQcHauGgLhLQLoat9eGnZ3CFtUMQPpy+YpR4AzDE2NMihqSnUoXnj1+ZpP4KXwqz7my7aDTuJXBkk4SfqpBiX2OCFsJDwcaSX9LZBacGPosN2/eR634+l+KYDYe0nwUjy2y04U4og==</SignatureValue>
+    <SignatureValue>bu492z0CTyBXzuEHAmpShWT4E0Ml6vIuofOAUGYgDMc04mrD2awMxQCT1Yloam7PUxzQDquMPj8lwiw4hst2yBxaNjLQ/BT7FiYtoxbMCddr/DM87cIp/puEGqIagAG7FjNVz4fYmrprhIPI3DlpAF9Q+/MYmp5ddKNJa45lEqucq5bkpoxOL6EWyN66s0PXuSICCxZJ6GkWfljCeZmbIwHoiWkVkoDPq375aFIoOjAtQnI7z0Xj0spW+XA09RgNhwUj7FvLosare+/hMcvZoeLvakM6IIL1reJklKSXCtNLKXZPVH2Bvbb12xsyAvycFGSZCM394SNu13G5At0D+A==</SignatureValue>
     <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
       <ds:X509Data>
         <ds:X509Certificate>MIIC8DCCAdigAwIBAgIQGiBXT6/l3KJEA22dv+Ov0DANBgkqhkiG9w0BAQsFADA0MTIwMAYDVQQDEylNaWNyb3NvZnQgQXp1cmUgRmVkZXJhdGVkIFNTTyBDZXJ0aWZpY2F0ZTAeFw0yNTExMjIxMzM5NTFaFw0yODExMjIxMzM5NTFaMDQxMjAwBgNVBAMTKU1pY3Jvc29mdCBBenVyZSBGZWRlcmF0ZWQgU1NPIENlcnRpZmljYXRlMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAz0kCfv41uUvsuCr2xifSK4IOXqxtK6sQfpfxMPMrqmMUr0m2jMZ0p7H74IJ9Rh916L94eOcT4YRHw7F5+1dG0IoCMiFZ6+/ih2BlU2004susyaijdtkuJvvh+h02AeH7zjXgPuhvm/OAFaaR7vqo8HG8dLgm+gbt3ECpRKEhDNnrmTRpg82Ow7Pztc0OU9iDGXIyULu+NUlMgZvVWwtqEM4cf7kaIWGdJFn6REDNq2zC3ppm5S2nFWJBkiMS4fyvP0fnOb6S2p7UOdtik6T/SCEqAB5pNdR0cZaECCCMAVsSNcBY9ElSoms6qyfWtAHGwMTIySUXt+kvklBQ7oXv2QIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQAn5mz16fmodWG2sXhi9PAIT+dljWq6hCJBexIexVPrMK1Bs9XwU8zpSkRin9ysfw7zT+6TobJhP9kaCYT5479+ypsZh9NysR2oPlmJ5qTcGCA1NTf1KlMyYBKn3YUljMTEu9ZBBtg3z/87uuU9w/Vjy1Z3xUFEzlw7Yi3Q2QqUeymdkFiFw62zk/9pnEpPc06RSjo0Mp4qJvBV8zSrPo+f3V0RfiLcHm9meFRyO40ARmfqFHUw7Aw3hM26EYN9ScRDzM6BBUXKswRX4C+F5rTYp54k6rNh7/G3ZpK9C1QBJIctTWCpo5yle9pJrtQjX6nf6LVBNtHQtz4MCxHuzZ74</ds:X509Certificate>
