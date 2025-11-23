@@ -1,0 +1,145 @@
+openapi: 3.0.3
+info:
+  title: Sandbox SAML + Password API
+  version: "1.0.0"
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/auth/login:
+    post:
+      summary: Username/password login
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        "401":
+          description: Invalid credentials
+          content:
+            text/plain:
+              schema:
+                type: string
+      tags:
+        - auth
+  /api/auth/logout:
+    post:
+      summary: Logout current session
+      operationId: logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutResponse'
+      tags:
+        - auth
+      security:
+        - session: []
+  /api/me:
+    get:
+      summary: Get current user info
+      description: |
+        ログイン済みセッションのユーザー情報とSAML属性（SAMLログイン時のみ）を返します。
+        未ログインの場合は401を返します。
+      operationId: me
+      responses:
+        "200":
+          description: Current authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeResponse'
+        "401":
+          description: Not authenticated
+      tags:
+        - auth
+      security:
+        - session: []
+  /saml2/authenticate/entra:
+    get:
+      summary: Start SAML SSO (SP-initiated)
+      description: Redirects the user to the Entra ID login page.
+      operationId: samlAuthenticate
+      responses:
+        "302":
+          description: Redirect to Identity Provider
+      tags:
+        - saml
+  /saml2/service-provider-metadata/entra:
+    get:
+      summary: Get SP metadata
+      description: Returns SAML Service Provider metadata XML for the registration `entra`.
+      operationId: samlMetadata
+      responses:
+        "200":
+          description: SP metadata XML
+          content:
+            application/xml:
+              schema:
+                type: string
+        "404":
+          description: Metadata not available
+      tags:
+        - saml
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          example: user
+        password:
+          type: string
+          format: password
+          example: password
+    LoginResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+    LogoutResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: logged_out
+    MeResponse:
+      type: object
+      properties:
+        name:
+          type: string
+          example: user
+        authorities:
+          type: array
+          items:
+            type: string
+          example: [ROLE_USER]
+        attributes:
+          description: Present for SAML-authenticated users
+          type: object
+          additionalProperties:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string

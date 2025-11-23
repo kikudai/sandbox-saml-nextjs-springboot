@@ -13,7 +13,12 @@ const fetcher = (url: string) => fetch(url, { credentials: "include" }).then((r)
 
 export default function Home() {
   const apiBase = useMemo(() => process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8080", []);
-  const { data, mutate, isLoading } = useSWR<UserInfo | null>(`${apiBase}/api/me`, fetcher);
+  const { data, mutate, isLoading } = useSWR<UserInfo | null>(`${apiBase}/api/me`, fetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    refreshInterval: 0,
+    shouldRetryOnError: false
+  });
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
