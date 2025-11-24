@@ -25,6 +25,15 @@ import org.springframework.security.saml2.provider.service.registration.InMemory
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrations;
+import org.springframework.security.saml2.core.Saml2X509Credential;
+import org.springframework.core.io.ClassPathResource;
+import java.io.InputStream;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.Base64;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -140,13 +149,71 @@ public class SecurityConfig {
       @Value("${app.saml.entity-id}") String entityId) {
     log.info("Creating RelyingPartyRegistrationRepository (app.saml.enabled=true) metadataUri={}, entityId={}",
         metadataUri, entityId);
-    RelyingPartyRegistration registration = RelyingPartyRegistrations
+    
+    RelyingPartyRegistration.Builder builder = RelyingPartyRegistrations
         .fromMetadataLocation(metadataUri)
         .registrationId("entra")
-        .entityId(entityId)
-        .build();
+        .entityId(entityId);
+    
+    // SP側の署名鍵を明示的に設定
+    try {
+      Saml2X509Credential signingCredential = loadSigningCredential();
+      if (signingCredential != null) {
+        builder.signingX509Credentials(credentials -> credentials.add(signingCredential));
+        log.info("SP signing credential loaded from classpath:saml/sp-signing.*");
+      }
+    } catch (Exception e) {
+      log.warn("Failed to load SP signing credential from classpath:saml/sp-signing.*: {}", e.getMessage());
+      log.warn("SP metadata may not include signing certificate. SAML requests may not be signed.");
+    }
+    
+    RelyingPartyRegistration registration = builder.build();
     log.info("Created RelyingPartyRegistrationRepository for registrationId=entra, entityId={}", entityId);
     return new InMemoryRelyingPartyRegistrationRepository(registration);
+  }
+  
+  private Saml2X509Credential loadSigningCredential() throws Exception {
+    try {
+      // 証明書の読み込み
+      ClassPathResource certResource = new ClassPathResource("saml/sp-signing.crt");
+      if (!certResource.exists()) {
+        log.debug("Certificate file not found: classpath:saml/sp-signing.crt");
+        return null;
+      }
+      
+      CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
+      X509Certificate certificate;
+      try (InputStream certStream = certResource.getInputStream()) {
+        certificate = (X509Certificate) certFactory.generateCertificate(certStream);
+      }
+      
+      // 秘密鍵の読み込み
+      ClassPathResource keyResource = new ClassPathResource("saml/sp-signing.key");
+      if (!keyResource.exists()) {
+        log.debug("Private key file not found: classpath:saml/sp-signing.key");
+        return null;
+      }
+      
+      PrivateKey privateKey;
+      try (InputStream keyStream = keyResource.getInputStream()) {
+        String keyContent = new String(keyStream.readAllBytes());
+        // PEM形式の秘密鍵をパース（PKCS#8形式を想定）
+        String privateKeyPEM = keyContent
+            .replace("-----BEGIN PRIVATE KEY-----", "")
+            .replace("-----END PRIVATE KEY-----", "")
+            .replaceAll("\\s", "");
+        
+        byte[] keyBytes = Base64.getDecoder().decode(privateKeyPEM);
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
+        privateKey = keyFactory.generatePrivate(keySpec);
+      }
+      
+      return new Saml2X509Credential(privateKey, certificate, Saml2X509Credential.Saml2X509CredentialType.SIGNING);
+    } catch (Exception e) {
+      log.error("Error loading signing credential", e);
+      throw e;
+    }
   }
 
   @Bean
