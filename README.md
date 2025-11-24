@@ -177,6 +177,8 @@ docker compose up
   - `user/password` (ROLE_USER)
   - `admin/adminpass` (ROLE_ADMIN, ROLE_USER)
 - SAML 署名鍵は `backend/src/main/resources/saml/sp-signing.*` にサンプルを同梱。実運用では置き換えてください。
+  - **重要**: `sp-signing.key`（秘密鍵）は絶対にコミットしないでください。`.gitignore`で除外されています。
+  - `sp-signing.crt`（証明書）のみがリポジトリに含まれます。これは公開情報のため問題ありません。
 
 ### 接続元IP・認証情報
 - ログイン可能な接続元（CORS & セッション想定）: `http://localhost:3000` および `http://127.0.0.1:3000`
