@@ -218,14 +218,29 @@ public class SecurityConfig {
 
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
-    CorsConfiguration configuration = new CorsConfiguration();
+    String frontendOrigin = frontendBaseUrl != null ? frontendBaseUrl.replaceAll("/+$", "") : "http://localhost:3000";
+
+    CorsConfiguration defaultConfig = new CorsConfiguration();
     // Restrict CORS to the known frontend origin
-    configuration.setAllowedOrigins(List.of(frontendBaseUrl));
-    configuration.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
-    configuration.setAllowedHeaders(List.of("*"));
-    configuration.setAllowCredentials(true);
+    defaultConfig.setAllowedOriginPatterns(List.of(frontendOrigin));
+    defaultConfig.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
+    defaultConfig.setAllowedHeaders(List.of("*"));
+    defaultConfig.setAllowCredentials(true);
+
+    CorsConfiguration samlAcsConfig = new CorsConfiguration();
+    // Allow the IdP (Entra) to POST the SAML Response to ACS, and the frontend origin.
+    // Some IdP responses include an Origin that may not match the tenant subdomain exactly,
+    // so we allow all for ACS endpoints to avoid false CORS rejections.
+    samlAcsConfig.setAllowedOriginPatterns(List.of("*"));
+    samlAcsConfig.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
+    samlAcsConfig.setAllowedHeaders(List.of("*"));
+    samlAcsConfig.setAllowCredentials(true);
+
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-    source.registerCorsConfiguration("/**", configuration);
+    // Apply ACS-specific CORS first (more specific path)
+    source.registerCorsConfiguration("/login/saml2/**", samlAcsConfig);
+    source.registerCorsConfiguration("/saml2/**", samlAcsConfig);
+    source.registerCorsConfiguration("/**", defaultConfig);
     return source;
   }
 }
