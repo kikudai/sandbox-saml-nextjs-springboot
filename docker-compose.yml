@@ -19,9 +19,15 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     environment:
+      - NODE_ENV=development
       - NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+      - NEXT_DEV_HTTPS_KEY=${NEXT_DEV_HTTPS_KEY:-./certs/localhost-key.pem}
+      - NEXT_DEV_HTTPS_CERT=${NEXT_DEV_HTTPS_CERT:-./certs/localhost-cert.pem}
+      - DEV_HOST=0.0.0.0
+      - DEV_PORT=3000
     ports:
       - "3000:3000"
+    command: npm run dev
     depends_on:
       - backend
     networks:

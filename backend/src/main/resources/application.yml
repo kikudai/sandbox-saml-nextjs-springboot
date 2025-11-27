@@ -3,7 +3,8 @@ server:
   servlet:
     session:
       cookie:
-        same-site: none
+        # ローカルHTTPでも動くように既定はLax。クロスオリジンでCookieを送る必要がある本番は None + Secure に上書きしてください。
+        same-site: ${SESSION_COOKIE_SAME_SITE:lax}
         secure: ${SESSION_COOKIE_SECURE:false}
 
 spring:
