@@ -39,21 +39,23 @@ Next.js フロントエンドと Spring Boot バックエンドで、Entra ID �
 
 1. **識別子 (エンティティ ID)** フィールド（必須）に以下を入力：
    ```
-   http://localhost:8080/saml2/service-provider-metadata/entra
+   https://localhost:8080/saml2/service-provider-metadata/entra
    ```
    - または、`docker-compose.yml` の `SAML_ENTITY_ID` 環境変数で変更した場合はそれに合わせる
    - この値は、Service Provider（このアプリケーション）を一意に識別するIDです
+   - Microsoft Entra ID に対してアプリケーションを識別する一意の ID。この値は、Microsoft Entra ID テナント内のすべてのアプリケーションで一意である必要があります。既定の識別子は、IDP で開始された SSO の SAML 応答の対象ユーザーになります。
 
 2. **応答 URL (Assertion Consumer Service URL)** フィールド（必須）に以下を入力：
    ```
-   http://localhost:8080/login/saml2/sso/entra
+   https://localhost:8080/login/saml2/sso/entra
    ```
    - これは Spring Security SAML2 のデフォルトエンドポイントです
    - Entra IDが認証成功後にSAMLレスポンスを送信する先のURLです
+   - 応答 URL は、アプリケーションが認証トークンを受け取る場所です。これは、SAML では Assertion Consumer Service (ACS) とも呼ばれます。
 
 3. **ログアウト URL (省略可能)** フィールド（任意）に以下を入力：
    ```
-   http://localhost:8080/logout
+   https://localhost:8080/logout
    ```
    - シングルログアウト（SLO）を使用する場合に設定します
 
@@ -136,7 +138,7 @@ Next.js フロントエンドと Spring Boot バックエンドで、Entra ID �
 
 2. ブラウザで以下のURLにアクセス:
    ```
-   http://localhost:8080/saml2/service-provider-metadata/entra
+   https://localhost:8080/saml2/service-provider-metadata/entra
    ```
    - 正常に動作している場合、XMLメタデータが表示されます
    - 401エラーが表示される場合は、`SAML_ENABLED=true` が設定されているか確認してください
@@ -158,8 +160,8 @@ docker compose up
 - `SAML_ENABLED` : SAML認証を有効にする場合は `true` を設定（デフォルトは `false`）
   - SPメタデータエンドポイントにアクセスするには、この値を `true` にする必要があります
 - `SAML_IDP_METADATA_URI` : Entra ID メタデータ URL または `file:` パス
-- `SAML_ENTITY_ID` : SP Entity ID（デフォルトは `http://localhost:8080/saml2/service-provider-metadata/entra`）
-- `APP_FRONTEND_BASE_URL` : SAML ログイン成功時のリダイレクト先（デフォルト `http://localhost:3000`）
+- `SAML_ENTITY_ID` : SP Entity ID（デフォルトは `https://localhost:8080/saml2/service-provider-metadata/entra`）
+- `APP_FRONTEND_BASE_URL` : SAML ログイン成功時のリダイレクト先（デフォルト `https://localhost:3000`）
 - フロント: `NEXT_PUBLIC_API_BASE_URL`（バックエンド URL）
 
 ## ローカル実行（開発用メモ）
@@ -181,7 +183,7 @@ docker compose up
   - `sp-signing.crt`（証明書）のみがリポジトリに含まれます。これは公開情報のため問題ありません。
 
 ### 接続元IP・認証情報
-- ログイン可能な接続元（CORS & セッション想定）: `http://localhost:3000` および `http://127.0.0.1:3000`
+- ログイン可能な接続元（CORS & セッション想定）: `https://localhost:3000` および `https://127.0.0.1:3000`
 - パスワード認証ユーザー:
   - ユーザー: `user` / パスワード: `password`
   - 管理者: `admin` / パスワード: `adminpass`
@@ -201,7 +203,7 @@ docker compose up
 
 ### SPメタデータエンドポイントで401エラーが発生する場合
 
-**症状**: `http://localhost:8080/saml2/service-provider-metadata/entra` にアクセスすると401エラーが表示される
+**症状**: `https://localhost:8080/saml2/service-provider-metadata/entra` にアクセスすると401エラーが表示される
 
 **原因と対処法**:
 

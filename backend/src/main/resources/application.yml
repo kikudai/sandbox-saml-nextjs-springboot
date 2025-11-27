@@ -3,9 +3,17 @@ server:
   servlet:
     session:
       cookie:
-        # ローカルHTTPでも動くように既定はLax。クロスオリジンでCookieを送る必要がある本番は None + Secure に上書きしてください。
-        same-site: ${SESSION_COOKIE_SAME_SITE:lax}
-        secure: ${SESSION_COOKIE_SECURE:false}
+        # SAML認証フローではIdPからのPOSTでCookieが必要なため、SameSite=None + Secure=true を推奨
+        # ローカル開発環境（HTTPS）では None + Secure が適切
+        # HTTP環境では Lax + Secure=false を使用
+        same-site: ${SESSION_COOKIE_SAME_SITE:none}
+        secure: ${SESSION_COOKIE_SECURE:true}
+        # SAML認証フローに十分な時間を確保するため、セッション有効期限を延長
+        max-age: ${SESSION_COOKIE_MAX_AGE:1800}
+      # セッションタイムアウトを延長（SAML認証フローに時間がかかる場合があるため）
+      timeout: ${SESSION_TIMEOUT:30m}
+  # Honor X-Forwarded-* from nginx so SAML destinations use https://localhost
+  forward-headers-strategy: framework
 
 spring:
   application:

@@ -89,6 +89,7 @@ public class SecurityConfig {
             .logoutSuccessHandler((request, response, authentication) -> response.setStatus(HttpServletResponse.SC_OK)))
         .securityContext(ctx -> ctx.securityContextRepository(securityContextRepository()))
         .sessionManagement(session -> session
+            .sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.IF_REQUIRED)
             .maximumSessions(1)
             .maxSessionsPreventsLogin(false));
 

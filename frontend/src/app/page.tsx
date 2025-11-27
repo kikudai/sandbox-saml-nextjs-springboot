@@ -12,8 +12,8 @@ type UserInfo = {
 const fetcher = (url: string) => fetch(url, { credentials: "include" }).then((r) => (r.ok ? r.json() : null));
 
 export default function Home() {
-  // Proxy経由で同一オリジンに揃える（NEXT_PUBLIC_API_BASE_URL を指定すれば直叩きにも切替可）
-  const apiBase = useMemo(() => process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api/backend", []);
+  // 同一オリジン（nginx経由）で叩く。必要なら NEXT_PUBLIC_API_BASE_URL で上書き。
+  const apiBase = useMemo(() => process.env.NEXT_PUBLIC_API_BASE_URL ?? "", []);
   const { data, mutate, isLoading } = useSWR<UserInfo | null>(`${apiBase}/api/me`, fetcher, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,

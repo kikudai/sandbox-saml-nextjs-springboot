@@ -15,10 +15,18 @@ async function handle(req: NextRequest, context: { params: { path?: string[] } }
   headers.delete("content-length");
   headers.delete("accept-encoding");
 
+  // Read body if present (buffered) to avoid duplex requirement
+  let body: BodyInit | undefined;
+  if (!["GET", "HEAD"].includes(req.method)) {
+    const buf = Buffer.from(await req.arrayBuffer());
+    body = buf;
+    headers.set("content-length", String(buf.length));
+  }
+
   const res = await fetch(target.toString(), {
     method: req.method,
     headers,
-    body: req.body,
+    body,
     redirect: "manual"
   });
 
