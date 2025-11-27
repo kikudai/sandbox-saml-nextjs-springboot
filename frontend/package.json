@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "DEV_HOST=${DEV_HOST:-localhost} DEV_PORT=${DEV_PORT:-3000} next dev --hostname $DEV_HOST --port $DEV_PORT --experimental-https",
+    "dev": "DEV_HOST=${DEV_HOST:-localhost} DEV_PORT=${DEV_PORT:-3000} next dev --hostname $DEV_HOST --port $DEV_PORT --experimental-https --experimental-https-key ${NEXT_DEV_HTTPS_KEY:-./certs/localhost-key.pem} --experimental-https-cert ${NEXT_DEV_HTTPS_CERT:-./certs/localhost-cert.pem}",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
