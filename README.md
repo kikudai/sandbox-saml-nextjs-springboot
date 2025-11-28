@@ -365,10 +365,16 @@ docker compose up
 
 **推奨される`.env`ファイルの設定例**:
 ```
+### backend springboot application.yml 用
+
 SAML_ENABLED=true
+# SAML 証明書 アプリのフェデレーション メタデータ URL
 SAML_IDP_METADATA_URI=https://login.microsoftonline.com/<tenant-id>/federationmetadata/2007-06/federationmetadata.xml?appid=<app-id>
+APP_FRONTEND_BASE_URL=https://localhost
+
+### docker-compose.yml 用
+
 SAML_ENTITY_ID=https://localhost/saml2/service-provider-metadata/entra
-APP_FRONTEND_BASE_URL=https://localhost:3000
 ```
 
 **注意**: 

@@ -7,7 +7,7 @@ services:
       - SPRING_AUTO_CONFIGURE_EXCLUDE=org.springframework.boot.autoconfigure.security.saml2.Saml2RelyingPartyAutoConfiguration
       - SAML_ENABLED=${SAML_ENABLED:-false}
       - SAML_IDP_METADATA_URI=${SAML_IDP_METADATA_URI:-}
-      - SAML_ENTITY_ID=${SAML_ENTITY_ID:-https://localhost/saml2/service-provider-metadata/entra}
+      - SAML_ENTITY_ID=${SAML_ENTITY_ID:-}
       - APP_FRONTEND_BASE_URL=${APP_FRONTEND_BASE_URL:-https://frontend:3000}
     ports:
       - "8080:8080"
