@@ -118,20 +118,16 @@ Next.js フロントエンドと Spring Boot バックエンドで、Entra ID �
 **重要**: SPメタデータを取得するには、まずSAMLを有効にする必要があります。
 
 1. **SAMLを有効にしてバックエンドを起動**:
-   - 環境変数 `SAML_ENABLED=true` を設定して起動します
-   - まだEntra IDのメタデータURLが取得できていない場合は、一時的にプレースホルダーを使用できます:
-     ```bash
-     SAML_ENABLED=true SAML_IDP_METADATA_URI=classpath:saml/idp-placeholder.xml docker compose up
-     ```
-   - または、`.env` ファイルを作成して設定:
+   - 環境変数 `SAML_ENABLED=true` と `SAML_IDP_METADATA_URI` を設定して起動します
+   - `.env` ファイルを作成して設定:
      - **配置場所**: プロジェクトルート（`docker-compose.yml`と同じディレクトリ）に `.env` ファイルを作成
      - 内容例:
      ```
      SAML_ENABLED=true
-     SAML_IDP_METADATA_URI=classpath:saml/idp-placeholder.xml
+     SAML_IDP_METADATA_URI=https://login.microsoftonline.com/<tenant-id>/federationmetadata/2007-06/federationmetadata.xml?appid=<app-id>
      ```
      - Docker Composeは、`docker-compose.yml`と同じディレクトリにある`.env`ファイルを自動的に読み込みます
-   - 既にEntra IDのメタデータURLを取得している場合は、それを使用:
+   - または、環境変数として直接指定:
      ```bash
      SAML_ENABLED=true SAML_IDP_METADATA_URI=https://login.microsoftonline.com/<tenant-id>/federationmetadata/2007-06/federationmetadata.xml?appid=<app-id> docker compose up
      ```
@@ -214,20 +210,11 @@ docker compose up
 
 2. **メタデータURIが設定されていない**
    - `.env`ファイルまたは環境変数で `SAML_IDP_METADATA_URI` が設定されているか確認
-   - プレースホルダーを使用する場合: `SAML_IDP_METADATA_URI=classpath:saml/idp-placeholder.xml`
-   - 実際のEntra IDメタデータを使用する場合: `SAML_IDP_METADATA_URI=https://login.microsoftonline.com/...`
+   - Entra IDのメタデータURLを設定: `SAML_IDP_METADATA_URI=https://login.microsoftonline.com/<tenant-id>/federationmetadata/2007-06/federationmetadata.xml?appid=<app-id>`
    - **重要**: `SAML_IDP_METADATA_URI` が空の場合、`RelyingPartyRegistrationRepository` が作成されず、メタデータエンドポイントが利用できません
-
-3. **ファイルパスの確認**
-   - `classpath:saml/idp-placeholder.xml` を使用する場合、ファイルが `backend/src/main/resources/saml/idp-placeholder.xml` に存在するか確認
-   - **注意**: Spring Bootアプリケーションでは、リソースファイルはJARファイル内にパッケージされます
-   - Dockerコンテナ内でJARファイル内のリソースを確認する場合:
+   - メタデータURLが正しく設定されているか確認:
      ```bash
-     docker compose exec backend jar -tf /app/app.jar | grep idp-placeholder.xml
-     ```
-   - または、JARファイル内のsamlディレクトリの内容を確認:
-     ```bash
-     docker compose exec backend jar -tf /app/app.jar | grep "saml/"
+     docker compose exec backend env | grep SAML_IDP_METADATA_URI
      ```
 
 4. **バックエンドのログを確認**
@@ -251,9 +238,9 @@ docker compose up
 **推奨される`.env`ファイルの設定例**:
 ```
 SAML_ENABLED=true
-SAML_IDP_METADATA_URI=classpath:saml/idp-placeholder.xml
-SAML_ENTITY_ID=http://localhost:8080/saml2/service-provider-metadata/entra
-APP_FRONTEND_BASE_URL=http://localhost:3000
+SAML_IDP_METADATA_URI=https://login.microsoftonline.com/<tenant-id>/federationmetadata/2007-06/federationmetadata.xml?appid=<app-id>
+SAML_ENTITY_ID=https://localhost/saml2/service-provider-metadata/entra
+APP_FRONTEND_BASE_URL=https://localhost:3000
 ```
 
 **重要**: `.env`ファイルを変更した後は、**必ずバックエンドを再起動**してください:
