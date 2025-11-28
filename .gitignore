@@ -16,6 +16,7 @@ backend/.mvn
 .DS_Store
 
 .env
+*.pem
 
 # SAML signing keys (secret keys should never be committed)
 backend/src/main/resources/saml/*.key
