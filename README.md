@@ -5,11 +5,113 @@ Next.js フロントエンドと Spring Boot バックエンドで、Entra ID �
 ## 構成
 - frontend (Next.js 14) : `/frontend`
 - backend (Spring Boot 3 / Spring Security SAML2) : `/backend`
-- docker compose : フロント `3000`, バックエンド `8080`
+- proxy (nginx) : HTTPS リバースプロキシ（443ポート）
+- docker compose : フロント `3000`, バックエンド `8080`, nginx `443`
+
+### アクセス方法
+- **推奨**: nginx経由で `https://localhost`（443ポート、ポート番号なし）にアクセスします
+  - nginxが `/saml2/` と `/login/saml2/` のパスをバックエンドにプロキシします
+  - Entra IDに登録するURLも、このnginx経由のURL（`https://localhost/saml2/...`）を使用します
+- 直接アクセスする場合:
+  - フロントエンド: `https://localhost:3000`
+  - バックエンド: `https://localhost:8080`
 
 ### バージョン情報
 - フロントエンド: Next.js 14.1.0 / React 18.2.0 / TypeScript 5.3.3（`frontend/package.json` に準拠）
 - バックエンド: Java 17 / Spring Boot 3.2.5 / Spring Security 6.2.4 / Spring Security SAML2 / Maven / OpenSAML (Shibboleth repo)
+
+## 事前準備（ローカル環境）
+
+### mkcert を使用した HTTPS 証明書の設定
+
+SAML認証ではHTTPSが必要なため、ローカル開発環境で `localhost` 用の証明書を生成する必要があります。ここでは、Windows側で `mkcert` を使用して証明書を生成し、WSL側にコピーして使用する方法を説明します。
+
+#### 1. Windows側で mise をインストール
+
+**Powershellからインストールする**
+1. [mise の公式サイト](https://mise.jdx.dev/)からインストール手順を確認
+2. PowerShellで以下を実行：
+```powershell
+# mise のインストールスクリプトを実行
+irm https://mise.run | iex
+```
+
+#### 2. Windows側で mkcert をインストール（mise を使用）
+
+PowerShellまたはコマンドプロンプトで以下を実行：
+```powershell
+mise install mkcert
+```
+
+これにより、miseがmkcertを管理し、自動的にPATHに追加されます。
+
+#### 3. ローカルCAをインストール
+
+PowerShellまたはコマンドプロンプトで以下を実行：
+```powershell
+mkcert -install
+```
+
+これにより、ローカル開発用の認証局（CA）がWindowsの信頼されたルート証明書ストアにインストールされます。
+
+#### 4. localhost 用の証明書を生成
+
+証明書を生成したいディレクトリ（例: `C:\Users\<ユーザー名>\certs`）に移動して、以下を実行：
+```powershell
+mkcert -key-file localhost-key.pem -cert-file localhost-cert.pem localhost
+```
+
+これにより、以下の2つのファイルが指定した名前で生成されます：
+- `localhost-cert.pem`（証明書）
+- `localhost-key.pem`（秘密鍵）
+
+**注意**: `-key-file`と`-cert-file`オプションを使用することで、最初から希望のファイル名で生成されるため、リネームの手順は不要です。
+
+#### 5. 証明書をWSL側にコピー
+
+WSL側のプロジェクトディレクトリの `frontend/certs/` ディレクトリに証明書をコピーします。
+
+**方法A: WSLからWindowsのファイルにアクセスする場合**
+```bash
+# WSL側で実行
+mkdir -p frontend/certs
+cp /mnt/c/Users/<ユーザー名>/certs/localhost-cert.pem frontend/certs/
+cp /mnt/c/Users/<ユーザー名>/certs/localhost-key.pem frontend/certs/
+```
+
+**方法B: Windows側からWSLにコピーする場合**
+```powershell
+# PowerShellで実行（WSLのパスは環境に応じて調整）
+Copy-Item "C:\Users\<ユーザー名>\certs\localhost-cert.pem" "\\wsl$\Ubuntu\home\<ユーザー名>\ghq\github.com\kikudai\sandbox-saml-nextjs-springboot\frontend\certs\"
+Copy-Item "C:\Users\<ユーザー名>\certs\localhost-key.pem" "\\wsl$\Ubuntu\home\<ユーザー名>\ghq\github.com\kikudai\sandbox-saml-nextjs-springboot\frontend\certs\"
+```
+
+**方法C: 手動でコピーする場合**
+1. Windows側で `localhost-cert.pem` と `localhost-key.pem` をコピー
+2. WSL側の `frontend/certs/` ディレクトリに貼り付け
+
+#### 6. 証明書の配置確認
+
+以下のコマンドで証明書が正しく配置されているか確認：
+```bash
+ls -la frontend/certs/
+```
+
+以下の2つのファイルが存在することを確認：
+- `localhost-cert.pem`
+- `localhost-key.pem`
+
+#### 7. 証明書の権限設定（オプション）
+
+セキュリティのため、秘密鍵の権限を制限することを推奨します：
+```bash
+chmod 600 frontend/certs/localhost-key.pem
+chmod 644 frontend/certs/localhost-cert.pem
+```
+
+**重要**: 
+- `localhost-key.pem`（秘密鍵）は絶対にコミットしないでください。`.gitignore`で除外されています。
+- `localhost-cert.pem`（証明書）は公開情報のため、コミットしても問題ありませんが、通常はローカル開発環境でのみ使用します。
 
 ## 事前準備（Entra ID 側設定）
 
@@ -39,24 +141,30 @@ Next.js フロントエンドと Spring Boot バックエンドで、Entra ID �
 
 1. **識別子 (エンティティ ID)** フィールド（必須）に以下を入力：
    ```
-   https://localhost:8080/saml2/service-provider-metadata/entra
+   https://localhost/saml2/service-provider-metadata/entra
    ```
-   - または、`docker-compose.yml` の `SAML_ENTITY_ID` 環境変数で変更した場合はそれに合わせる
+   - **推奨**: nginx経由のURL（ポート番号なし）。`docker-compose.yml` のデフォルト `SAML_ENTITY_ID` に合わせています。
+   - または、直接バックエンドにアクセスする場合は `https://localhost:8080/saml2/service-provider-metadata/entra` を使用することも可能です
+   - `docker-compose.yml` の `SAML_ENTITY_ID` 環境変数で変更した場合は、その値に合わせてください
    - この値は、Service Provider（このアプリケーション）を一意に識別するIDです
    - Microsoft Entra ID に対してアプリケーションを識別する一意の ID。この値は、Microsoft Entra ID テナント内のすべてのアプリケーションで一意である必要があります。既定の識別子は、IDP で開始された SSO の SAML 応答の対象ユーザーになります。
 
 2. **応答 URL (Assertion Consumer Service URL)** フィールド（必須）に以下を入力：
    ```
-   https://localhost:8080/login/saml2/sso/entra
+   https://localhost/login/saml2/sso/entra
    ```
+   - **推奨**: nginx経由のURL（ポート番号なし）。nginxが443ポートでリバースプロキシとして動作し、バックエンドに転送します。
+   - または、直接バックエンドにアクセスする場合は `https://localhost:8080/login/saml2/sso/entra` を使用することも可能です
    - これは Spring Security SAML2 のデフォルトエンドポイントです
    - Entra IDが認証成功後にSAMLレスポンスを送信する先のURLです
    - 応答 URL は、アプリケーションが認証トークンを受け取る場所です。これは、SAML では Assertion Consumer Service (ACS) とも呼ばれます。
 
 3. **ログアウト URL (省略可能)** フィールド（任意）に以下を入力：
    ```
-   https://localhost:8080/logout
+   https://localhost/logout
    ```
+   - **推奨**: nginx経由のURL（ポート番号なし）
+   - または、直接バックエンドにアクセスする場合は `https://localhost:8080/logout` を使用することも可能です
    - シングルログアウト（SLO）を使用する場合に設定します
 
 **注意**: 画面右上の **編集** ボタンをクリックして編集モードにしてから、各フィールドに入力してください。
@@ -134,8 +242,10 @@ Next.js フロントエンドと Spring Boot バックエンドで、Entra ID �
 
 2. ブラウザで以下のURLにアクセス:
    ```
-   https://localhost:8080/saml2/service-provider-metadata/entra
+   https://localhost/saml2/service-provider-metadata/entra
    ```
+   - **推奨**: nginx経由のURL（ポート番号なし）。nginxが443ポートでリバースプロキシとして動作し、バックエンドに転送します。
+   - または、直接バックエンドにアクセスする場合は `https://localhost:8080/saml2/service-provider-metadata/entra` を使用することも可能です
    - 正常に動作している場合、XMLメタデータが表示されます
    - 401エラーが表示される場合は、`SAML_ENABLED=true` が設定されているか確認してください
 
@@ -156,9 +266,13 @@ docker compose up
 - `SAML_ENABLED` : SAML認証を有効にする場合は `true` を設定（デフォルトは `false`）
   - SPメタデータエンドポイントにアクセスするには、この値を `true` にする必要があります
 - `SAML_IDP_METADATA_URI` : Entra ID メタデータ URL または `file:` パス
-- `SAML_ENTITY_ID` : SP Entity ID（デフォルトは `https://localhost:8080/saml2/service-provider-metadata/entra`）
-- `APP_FRONTEND_BASE_URL` : SAML ログイン成功時のリダイレクト先（デフォルト `https://localhost:3000`）
-- フロント: `NEXT_PUBLIC_API_BASE_URL`（バックエンド URL）
+- `SAML_ENTITY_ID` : SP Entity ID
+  - デフォルト: `application.yml` では `http://localhost:8080/saml2/service-provider-metadata/entra`、`docker-compose.yml` では `https://localhost/saml2/service-provider-metadata/entra`（nginx経由、ポート番号なし）
+  - **推奨**: `https://localhost/saml2/service-provider-metadata/entra`（nginx経由）。Entra IDに登録するURLと一致させてください。
+- `APP_FRONTEND_BASE_URL` : SAML ログイン成功時のリダイレクト先
+  - デフォルト: `application.yml` では `http://localhost:3000`、`docker-compose.yml` では `https://frontend:3000`（内部ネットワーク名）
+  - 通常は `https://localhost:3000` を推奨
+- フロント: `NEXT_PUBLIC_API_BASE_URL`（バックエンド URL、空の場合は同一オリジンとして扱われる）
 
 ## ローカル実行（開発用メモ）
 - フロント: `cd frontend && npm install && npm run dev`
@@ -171,6 +285,8 @@ docker compose up
   - `GET /api/me` : ログイン情報・SAML 属性を返却
   - `GET /saml2/authenticate/entra` : SP Initiated SAML フロー開始
   - `GET /saml2/service-provider-metadata/entra` : SP メタデータ
+  - `POST /login/saml2/sso/entra` : SAML Assertion Consumer Service (ACS) エンドポイント（Entra ID から SAMLResponse を受信）
+- SAML 認証フローの詳細は [`docs/saml-sequence.md`](docs/saml-sequence.md) を参照してください
 - 開発用インメモリユーザー
   - `user/password` (ROLE_USER)
   - `admin/adminpass` (ROLE_ADMIN, ROLE_USER)
@@ -179,7 +295,9 @@ docker compose up
   - `sp-signing.crt`（証明書）のみがリポジトリに含まれます。これは公開情報のため問題ありません。
 
 ### 接続元IP・認証情報
-- ログイン可能な接続元（CORS & セッション想定）: `https://localhost:3000` および `https://127.0.0.1:3000`
+- ログイン可能な接続元（CORS & セッション想定）: 
+  - nginx経由: `https://localhost`（443ポート）
+  - 直接アクセス: `https://localhost:3000`（フロント）および `https://localhost:8080`（バックエンド）
 - パスワード認証ユーザー:
   - ユーザー: `user` / パスワード: `password`
   - 管理者: `admin` / パスワード: `adminpass`
@@ -192,14 +310,24 @@ docker compose up
 
 ## よくある確認ポイント
 - `SAML_IDP_METADATA_URI` が正しいか（tenant/appid が一致しているか）
-- Entra ID に `/saml2/service-provider-metadata/entra` をアップロード済みか
+- Entra ID に SP メタデータ（`https://localhost/saml2/service-provider-metadata/entra` から取得、nginx経由）をアップロード済みか
+- `SAML_ENTITY_ID` が Entra ID の「識別子 (エンティティ ID)」と一致しているか
+  - **推奨**: nginx経由のURL（`https://localhost/saml2/service-provider-metadata/entra`、ポート番号なし）を使用します
 - フロントとバックエンドで同一ホスト名を使う（`localhost`/`127.0.0.1` を混在させない）ことでセッションが共有される
+- **nginxの役割**: nginxは443ポートでリバースプロキシとして動作し、SAMLエンドポイント（`/saml2/`、`/login/saml2/`）をバックエンドに転送します
+  - nginx経由でアクセスする場合は `https://localhost`（443ポート、ポート番号なし）を使用します
+  - 直接アクセスする場合は `https://localhost:3000`（フロント）または `https://localhost:8080`（バックエンド）を使用します
+
+## 関連ドキュメント
+
+- **[Entra ID SSO のクッキー、セッション、トークン](docs/entra-id-session-cookies.md)**: Entra ID SSOにおけるクッキー（ESTSAUTH、JSESSIONID）、セッション、トークン（PRT）の仕組みについて詳しく説明しています
+- **[SAML 認証シーケンス](docs/saml-sequence.md)**: SAML認証フローの詳細なシーケンス図と説明
 
 ## トラブルシューティング
 
 ### SPメタデータエンドポイントで401エラーが発生する場合
 
-**症状**: `https://localhost:8080/saml2/service-provider-metadata/entra` にアクセスすると401エラーが表示される
+**症状**: `https://localhost/saml2/service-provider-metadata/entra`（nginx経由）または `https://localhost:8080/saml2/service-provider-metadata/entra`（直接バックエンド）にアクセスすると401エラーが表示される
 
 **原因と対処法**:
 
@@ -242,6 +370,11 @@ SAML_IDP_METADATA_URI=https://login.microsoftonline.com/<tenant-id>/federationme
 SAML_ENTITY_ID=https://localhost/saml2/service-provider-metadata/entra
 APP_FRONTEND_BASE_URL=https://localhost:3000
 ```
+
+**注意**: 
+- `SAML_ENTITY_ID` は、Entra ID の「識別子 (エンティティ ID)」フィールドに設定した値と一致させる必要があります
+  - **推奨**: nginx経由のURL（`https://localhost/saml2/service-provider-metadata/entra`、ポート番号なし）を使用します
+- `APP_FRONTEND_BASE_URL` は、SAML 認証成功後のリダイレクト先です。通常はフロントエンドのURLを指定します
 
 **重要**: `.env`ファイルを変更した後は、**必ずバックエンドを再起動**してください:
 ```bash
