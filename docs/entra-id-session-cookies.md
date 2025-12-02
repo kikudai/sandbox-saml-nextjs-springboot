@@ -39,6 +39,106 @@ Entra ID SSOでは、複数のクッキーとトークンが異なる役割を�
 5. SAMLResponseを生成してアプリケーションに返送
 ```
 
+### シーケンス図
+
+#### 初回ログイン時のESTSAUTH Cookieセット
+
+初回ログイン時、ユーザーがEntra IDにログインし、ESTSAUTH Cookieがセットされるタイミングを示します。
+
+```mermaid
+sequenceDiagram
+    participant U as ユーザー (ブラウザ)
+    participant FE as Next.js フロント
+    participant BE as Spring Boot (SP)
+    participant IDP as Entra ID (IdP)
+
+    Note over U,IDP: 初回ログイン - ESTSAUTH Cookieがセットされる
+
+    U->>FE: "/" にアクセス
+    FE->>BE: GET /saml2/authenticate/entra<br/>（ログインボタン押下）
+    Note over BE: AuthnRequest 生成
+    BE-->>U: 302 リダイレクト<br/>Entra ID SSO へ（AuthnRequest）
+    U->>IDP: 署名付きAuthnRequest 付きリダイレクト
+    Note over IDP: ESTSAUTH Cookieを確認<br/>（初回のため存在しない）
+    IDP->>U: ログインUI表示
+    U->>IDP: ユーザー名・パスワード入力
+    Note over IDP: 認証成功
+    IDP->>U: Set-Cookie: ESTSAUTH=...<br/>（ESTSAUTH Cookieをセット）✅
+    IDP-->>U: POST SAMLResponse（Assertion）<br/>宛先: /login/saml2/sso/entra<br/>（ESTSAUTH Cookie付き）
+    U->>BE: POST /login/saml2/sso/entra<br/>（SAMLResponse + ESTSAUTH Cookie）
+    Note over BE: IdP証明書で署名検証<br/>Saml2Authentication を生成
+    BE->>BE: SecurityContextをHttpSessionに保存
+    BE-->>U: Set-Cookie: JSESSIONID=...<br/>（JSESSIONID Cookieをセット）✅
+    BE-->>U: 302 -> frontendBaseUrl
+    U->>BE: GET /api/me（JSESSIONID Cookie付き）
+    BE-->>U: ログイン済み情報 + SAML 属性
+```
+
+#### 2回目以降のログイン時（ESTSAUTH CookieによるM365ログインスキップ）
+
+ESTSAUTH Cookieが有効な場合、Entra IDはログイン画面をスキップして自動的に認証します（サイレント認証）。
+
+```mermaid
+sequenceDiagram
+    participant U as ユーザー (ブラウザ)
+    participant FE as Next.js フロント
+    participant BE as Spring Boot (SP)
+    participant IDP as Entra ID (IdP)
+
+    Note over U,IDP: 2回目以降のログイン - ESTSAUTH Cookieによりログイン画面をスキップ
+
+    U->>FE: "/" にアクセス
+    FE->>BE: GET /saml2/authenticate/entra<br/>（ログインボタン押下）
+    Note over BE: AuthnRequest 生成
+    BE-->>U: 302 リダイレクト<br/>Entra ID SSO へ（AuthnRequest）
+    U->>IDP: 署名付きAuthnRequest 付きリダイレクト<br/>（ESTSAUTH Cookie付き）✅
+    Note over IDP: ESTSAUTH Cookieを確認<br/>（有効なセッションが存在）
+    Note over IDP: ログイン画面をスキップ ✅<br/>（サイレント認証）
+    IDP-->>U: POST SAMLResponse（Assertion）<br/>宛先: /login/saml2/sso/entra<br/>（ESTSAUTH Cookie付き）
+    U->>BE: POST /login/saml2/sso/entra<br/>（SAMLResponse + ESTSAUTH Cookie）
+    Note over BE: IdP証明書で署名検証<br/>Saml2Authentication を生成
+    BE->>BE: SecurityContextをHttpSessionに保存
+    BE-->>U: Set-Cookie: JSESSIONID=...<br/>（JSESSIONID Cookieをセット）✅
+    BE-->>U: 302 -> frontendBaseUrl
+    U->>BE: GET /api/me（JSESSIONID Cookie付き）
+    BE-->>U: ログイン済み情報 + SAML 属性
+```
+
+#### ブラウザを閉じた後の再ログイン（ESTSAUTH Cookieが削除された場合）
+
+ブラウザを閉じると、ESTSAUTH CookieはセッションCookieのため削除されます。次回ブラウザを開いた際は、再ログインが必要になります。
+
+```mermaid
+sequenceDiagram
+    participant U as ユーザー (ブラウザ)
+    participant FE as Next.js フロント
+    participant BE as Spring Boot (SP)
+    participant IDP as Entra ID (IdP)
+
+    Note over U,IDP: ブラウザを閉じた後 - ESTSAUTH Cookieが削除される
+
+    Note over U: ブラウザを閉じる<br/>ESTSAUTH Cookieが削除される（セッションCookieのため）
+
+    U->>FE: "/" にアクセス（新しいブラウザセッション）
+    FE->>BE: GET /saml2/authenticate/entra<br/>（ログインボタン押下）
+    Note over BE: AuthnRequest 生成
+    BE-->>U: 302 リダイレクト<br/>Entra ID SSO へ（AuthnRequest）
+    U->>IDP: 署名付きAuthnRequest 付きリダイレクト<br/>（ESTSAUTH Cookieなし）❌
+    Note over IDP: ESTSAUTH Cookieを確認<br/>（Cookieが存在しない）
+    IDP->>U: ログインUI表示<br/>（再ログインが必要）❌
+    U->>IDP: ユーザー名・パスワード入力
+    Note over IDP: 認証成功
+    IDP->>U: Set-Cookie: ESTSAUTH=...<br/>（ESTSAUTH Cookieを再セット）✅
+    IDP-->>U: POST SAMLResponse（Assertion）<br/>宛先: /login/saml2/sso/entra
+    U->>BE: POST /login/saml2/sso/entra<br/>（SAMLResponse）
+    Note over BE: IdP証明書で署名検証<br/>Saml2Authentication を生成
+    BE->>BE: SecurityContextをHttpSessionに保存
+    BE-->>U: Set-Cookie: JSESSIONID=...<br/>（JSESSIONID Cookieをセット）✅
+    BE-->>U: 302 -> frontendBaseUrl
+    U->>BE: GET /api/me（JSESSIONID Cookie付き）
+    BE-->>U: ログイン済み情報 + SAML 属性
+```
+
 ### ブラウザを閉じた時の動作
 
 **通常のブラウザログイン（ESTSAUTH Cookie）**:
@@ -151,6 +251,135 @@ PRT（Primary Refresh Token）は、Windowsの組織ログイン（Azure AD Join
    ↓
 7. アプリケーション側のJSESSIONID Cookieを設定
 ```
+
+### PRTの検出メカニズム
+
+Entra IDは、ブラウザリダイレクト時にPRTの有無を以下のメカニズムで確認します：
+
+#### 1. ブラウザリダイレクト時の処理フロー
+
+ブラウザがEntra IDにリダイレクトする際、以下の処理が自動的に行われます：
+
+```
+1. ブラウザがEntra IDのサインインURLにアクセス
+   ↓
+2. ブラウザ拡張機能またはネイティブクライアントホストが起動
+   ↓
+3. レジストリから特定のURLを読み込み、Entra IDのサインインURLと一致するか確認
+   ↓
+4. CloudAPプラグイン（Windows）にPRTの取得を要求
+   ↓
+5. CloudAPプラグインがデバイスにPRTが存在するか確認
+   ├─ PRTが存在する場合
+   │  ↓
+   │  TPMで保護されたセッションキーでPRT Cookieを生成・署名
+   │  ↓
+   │  PRT Cookieをブラウザに返す
+   │  ↓
+   │  ブラウザがx-ms-RefreshTokenCredentialヘッダーにPRT Cookieを含めてEntra IDに送信 ✅
+   └─ PRTが存在しない場合
+      ↓
+      PRT CookieなしでEntra IDにリクエスト
+   ↓
+6. Entra IDがPRT Cookieの署名とnonceを検証
+   ↓
+7. デバイスがテナント内で有効か確認
+   ├─ 検証成功 → ログイン画面をスキップ ✅
+   └─ 検証失敗/PRTなし → ログイン画面を表示
+```
+
+#### 2. シーケンス図
+
+```mermaid
+sequenceDiagram
+    participant U as ユーザー (ブラウザ)
+    participant BE as ブラウザ拡張機能<br/>またはネイティブクライアントホスト
+    participant CP as CloudAP プラグイン<br/>(Windows)
+    participant IDP as Entra ID (IdP)
+    participant APP as アプリケーション (SP)
+
+    Note over U,IDP: PRTによる認証フロー
+
+    U->>APP: "/" にアクセス
+    APP->>U: GET /saml2/authenticate/entra<br/>（ログインボタン押下）
+    Note over APP: AuthnRequest 生成
+    APP-->>U: 302 リダイレクト<br/>Entra ID SSO へ（AuthnRequest）
+    U->>IDP: 署名付きAuthnRequest 付きリダイレクト
+    Note over U,BE: ブラウザ拡張機能または<br/>ネイティブクライアントホストが起動
+    U->>BE: レジストリからURLを読み込み<br/>（Entra IDのサインインURLと一致するか確認）
+    BE->>CP: PRTの取得を要求
+    Note over CP: デバイスにPRTが存在するか確認
+    alt PRTが存在する場合
+        CP->>CP: TPMで保護されたセッションキーで<br/>PRT Cookieを生成・署名
+        CP-->>BE: PRT Cookieを返却
+        BE-->>U: PRT Cookieをブラウザに返す
+        U->>IDP: x-ms-RefreshTokenCredential ヘッダー<br/>にPRT Cookieを含めて送信 ✅
+        Note over IDP: PRT Cookieの署名とnonceを検証<br/>デバイスがテナント内で有効か確認
+        Note over IDP: ログイン画面をスキップ ✅<br/>（サイレント認証）
+        IDP-->>U: POST SAMLResponse（Assertion）<br/>宛先: /login/saml2/sso/entra
+        U->>APP: POST /login/saml2/sso/entra<br/>（SAMLResponse）
+        Note over APP: IdP証明書で署名検証<br/>Saml2Authentication を生成
+        APP->>APP: SecurityContextをHttpSessionに保存
+        APP-->>U: Set-Cookie: JSESSIONID=...<br/>（JSESSIONID Cookieをセット）✅
+        APP-->>U: 302 -> frontendBaseUrl
+    else PRTが存在しない場合
+        CP-->>BE: PRTが存在しない
+        BE-->>U: PRT Cookieなし
+        U->>IDP: PRT Cookieなしでリクエスト
+        IDP->>U: ログインUI表示 ❌
+        U->>IDP: ユーザー名・パスワード入力
+        Note over IDP: 認証成功
+        IDP->>U: Set-Cookie: ESTSAUTH=...<br/>（ESTSAUTH Cookieをセット）✅
+        IDP-->>U: POST SAMLResponse（Assertion）
+        U->>APP: POST /login/saml2/sso/entra<br/>（SAMLResponse）
+        Note over APP: IdP証明書で署名検証<br/>Saml2Authentication を生成
+        APP->>APP: SecurityContextをHttpSessionに保存
+        APP-->>U: Set-Cookie: JSESSIONID=...<br/>（JSESSIONID Cookieをセット）✅
+        APP-->>U: 302 -> frontendBaseUrl
+    end
+```
+
+#### 3. Microsoft Edgeの組み込み機能
+
+Microsoft Edgeは、拡張機能を使用せずにPRTを検出する機能が組み込まれています：
+
+- **Windows統合認証**: EdgeはWindows Authentication Broker（WAM）を直接利用します
+- **自動検出**: デバイスに保存されているPRTに自動的にアクセスします
+- **ユーザー体験**: 追加の設定や拡張機能のインストールが不要です
+
+**他のブラウザとの違い**:
+
+| ブラウザ | PRT検出方法 |
+|---------|-----------|
+| **Microsoft Edge** | 組み込み機能（Windows統合認証）✅ |
+| **Google Chrome** | ブラウザ拡張機能が必要（Windows Accounts拡張機能など） |
+| **Firefox** | ブラウザ拡張機能が必要 |
+| **Safari** | macOSのKeychainを利用（異なるメカニズム） |
+
+#### 4. アプリケーション側での実装
+
+**重要なポイント**: PRTはEntra ID側とWindowsデバイス側で処理されるため、**アプリケーション側で特別な実装は不要**です。
+
+- **標準的なSAML認証フロー**: アプリケーションは標準的なSAML 2.0認証フローを実装するだけで、PRTの恩恵を自動的に受けられます
+- **透過的な動作**: PRTが有効な場合も無効な場合も、アプリケーション側は同じSAMLResponseを受け取り、同じように処理します
+- **自動的な動作**: Windowsデバイスに組織アカウントでサインインしていれば、PRTの恩恵を自動的に受けられます
+
+**実装例**（現在のプロジェクト）:
+
+```java
+// SecurityConfig.java
+if (samlEnabled) {
+  http.saml2Login(saml2 -> saml2
+      .relyingPartyRegistrationRepository(samlRepo)
+      .defaultSuccessUrl(frontendBaseUrl, true)
+      .failureHandler((request, response, exception) -> {
+        log.error("SAML authentication failed", exception);
+        response.sendError(HttpServletResponse.SC_FORBIDDEN);
+      }));
+}
+```
+
+この標準的なSAML認証フローにより、PRTが有効な場合、Entra IDが自動的にログイン画面をスキップし、SAMLResponseを返します。
 
 ### ブラウザを閉じた時の動作
 
@@ -353,6 +582,9 @@ server:
 1. **ESTSAUTH Cookie** により、Entra ID側のログイン状態が保持され、M365ログインをスキップできます
 2. **JSESSIONID Cookie** により、アプリケーション側の認証状態が保持されます
 3. **PRT** により、Windows組織ログインを使用している場合、ブラウザを閉じてもM365ログインをスキップできます
+   - PRTはEntra ID側とWindowsデバイス側で処理されるため、アプリケーション側で特別な実装は不要です
+   - Microsoft Edgeは組み込み機能により、拡張機能なしでPRTを検出できます
+   - 標準的なSAML認証フローを実装するだけで、PRTの恩恵を自動的に受けられます
 4. **サイレント認証** は特別な実装ではなく、標準的なプロトコル動作です
 5. **SameSite=None + Secure=true** の設定が、SAML認証フローでは必須です
 
@@ -361,4 +593,6 @@ server:
 - [Spring Security SAML2 Documentation](https://docs.spring.io/spring-security/reference/servlet/saml2/index.html)
 - [Microsoft Entra ID SAML シングル サインオン](https://learn.microsoft.com/ja-jp/entra/identity/apps/how-to-saml-sso)
 - [SAML 2.0 Technical Overview](https://www.oasis-open.org/committees/download.php/11511/sstc-saml-tech-overview-2.0-cd-01.pdf)
+- [Microsoft Entra ID のプライマリ更新トークン (PRT)](https://learn.microsoft.com/ja-jp/entra/identity/devices/concept-primary-refresh-token)
+
 
